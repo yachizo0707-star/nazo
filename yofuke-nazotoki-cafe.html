@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>夜ふけの謎解きカフェ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#161c28;
+    --ink-2:#1f2838;
+    --panel:#26314626;
+    --paper:#f3ead9;
+    --paper-2:#ece0c8;
+    --brass:#c9a24b;
+    --brass-soft:#e2c584;
+    --wax:#9c3b34;
+    --leaf:#4d7c5f;
+    --text-dim:#aab3c5;
+    box-sizing:border-box;
+  }
+  *{box-sizing:inherit; -webkit-tap-highlight-color:transparent;}
+  html,body{
+    height:100%;
+    margin:0;
+    background:
+      radial-gradient(ellipse 900px 500px at 50% -10%, #2b3650 0%, transparent 60%),
+      linear-gradient(180deg,#11151f 0%, #161c28 40%, #10131b 100%);
+    color:var(--paper);
+    font-family:'Zen Kaku Gothic New', -apple-system, BlinkMacSystemFont, sans-serif;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+  }
+  body{
+    min-height:100dvh;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  h1,h2,h3,.serif{font-family:'Shippori Mincho', serif;}
+  #app{
+    max-width:520px;
+    margin:0 auto;
+    min-height:100dvh;
+    display:flex;
+    flex-direction:column;
+    position:relative;
+  }
+
+  /* subtle star field */
+  .stars{position:fixed; inset:0; pointer-events:none; z-index:0; opacity:.5;
+    background-image:
+      radial-gradient(1.5px 1.5px at 20% 30%, #fff 100%, transparent),
+      radial-gradient(1px 1px at 75% 15%, #fff 100%, transparent),
+      radial-gradient(1px 1px at 60% 70%, #fff 100%, transparent),
+      radial-gradient(1.5px 1.5px at 90% 55%, #fff 100%, transparent),
+      radial-gradient(1px 1px at 35% 85%, #fff 100%, transparent),
+      radial-gradient(1px 1px at 10% 65%, #fff 100%, transparent);
+  }
+
+  header.topbar{
+    position:sticky; top:0; z-index:10;
+    padding:calc(env(safe-area-inset-top,0px) + 14px) 18px 12px;
+    display:flex; align-items:center; justify-content:space-between;
+    background:linear-gradient(180deg, rgba(17,21,31,.96), rgba(17,21,31,.75) 80%, transparent);
+    backdrop-filter:blur(6px);
+  }
+  header.topbar .brand{display:flex; align-items:center; gap:9px;}
+  header.topbar .lamp{width:9px; height:9px; border-radius:50%; background:var(--brass-soft); box-shadow:0 0 10px 3px rgba(226,197,132,.7);}
+  header.topbar .title{font-size:15px; letter-spacing:.06em; color:var(--brass-soft);}
+  header.topbar button.icon{
+    background:none; border:1px solid #3a4560; color:var(--text-dim);
+    border-radius:20px; padding:6px 12px; font-size:12px; font-family:inherit;
+  }
+
+  main{flex:1; padding:6px 18px 40px; position:relative; z-index:1;}
+
+  /* ---------- Title screen ---------- */
+  .title-screen{
+    display:flex; flex-direction:column; align-items:center; text-align:center;
+    padding-top:14vh; gap:18px;
+  }
+  .title-screen .mark{
+    width:74px; height:74px; border-radius:50%;
+    border:1.5px solid var(--brass);
+    display:flex; align-items:center; justify-content:center;
+    font-size:30px; color:var(--brass-soft);
+    box-shadow:0 0 22px rgba(201,162,75,.25), inset 0 0 14px rgba(201,162,75,.12);
+  }
+  .title-screen h1{font-size:26px; font-weight:800; line-height:1.5; margin:0; color:var(--paper);}
+  .title-screen p.copy{color:var(--text-dim); font-size:14px; line-height:1.9; max-width:320px; margin:0;}
+  .cta{
+    margin-top:10px;
+    background:linear-gradient(180deg, var(--brass-soft), var(--brass));
+    color:#241c0e; border:none; border-radius:30px;
+    padding:15px 40px; font-size:16px; font-weight:700; font-family:'Zen Kaku Gothic New';
+    box-shadow:0 8px 20px rgba(201,162,75,.25);
+  }
+  .cta:active{transform:translateY(1px);}
+  .title-screen .note{color:#6d7893; font-size:11.5px; margin-top:24px;}
+
+  /* ---------- Floor map ---------- */
+  .lede{color:var(--text-dim); font-size:13px; line-height:1.8; margin:6px 2px 18px;}
+  .floor-list{display:flex; flex-direction:column; gap:14px;}
+  .floor-card{
+    border:1px solid #38435f; border-radius:16px;
+    background:linear-gradient(160deg, rgba(38,49,70,.55), rgba(22,28,40,.55));
+    padding:18px 18px 16px;
+    position:relative; overflow:hidden;
+  }
+  .floor-card.locked{opacity:.55;}
+  .floor-card .fk{font-size:11px; letter-spacing:.14em; color:var(--brass-soft);}
+  .floor-card h3{margin:4px 0 6px; font-size:19px; color:var(--paper);}
+  .floor-card .desc{font-size:12.5px; color:var(--text-dim); margin:0 0 14px; line-height:1.7;}
+  .floor-card .row{display:flex; align-items:center; justify-content:space-between;}
+  .progress-track{flex:1; height:6px; border-radius:4px; background:#0e1320; overflow:hidden; margin-right:12px;}
+  .progress-fill{height:100%; background:linear-gradient(90deg, var(--brass), var(--brass-soft)); border-radius:4px; transition:width .4s ease;}
+  .go-btn{
+    border:1px solid var(--brass-soft); color:var(--brass-soft); background:none;
+    border-radius:20px; padding:7px 16px; font-size:12.5px; font-family:inherit; white-space:nowrap;
+  }
+  .seal{
+    position:absolute; top:14px; right:14px; width:34px; height:34px; border-radius:50%;
+    background:var(--wax); display:flex; align-items:center; justify-content:center;
+    font-size:14px; color:#f4dcd6; box-shadow:0 3px 6px rgba(0,0,0,.35);
+  }
+  .lock-icon{position:absolute; top:16px; right:18px; color:#5b6580; font-size:18px;}
+
+  /* ---------- Puzzle list within a floor ---------- */
+  .back-row{display:flex; align-items:center; gap:6px; color:var(--text-dim); font-size:13px; margin-bottom:14px;}
+  .back-row button{background:none; border:none; color:var(--text-dim); font-size:13px; padding:4px 0; font-family:inherit;}
+  .memo{
+    background:var(--paper); color:#2c2416; border-radius:12px; padding:14px 16px; margin-bottom:18px;
+    font-size:12.5px; line-height:1.8; box-shadow:0 6px 16px rgba(0,0,0,.3);
+    border-left:4px solid var(--wax);
+  }
+  .puz-list{display:flex; flex-direction:column; gap:10px;}
+  .puz-row{
+    display:flex; align-items:center; gap:12px;
+    border:1px solid #38435f; border-radius:12px; padding:13px 14px;
+    background:rgba(38,49,70,.35);
+  }
+  .puz-row.solved{border-color:var(--leaf); background:rgba(77,124,95,.12);}
+  .puz-num{
+    width:30px; height:30px; border-radius:50%; flex:none;
+    display:flex; align-items:center; justify-content:center;
+    font-size:13px; font-weight:700; color:var(--ink); background:#3a4560; color:#c9d1e3;
+  }
+  .puz-row.solved .puz-num{background:var(--leaf); color:#eafaf0;}
+  .puz-row .pt{flex:1; font-size:13.5px; color:var(--paper);}
+  .puz-row .pt small{display:block; color:var(--text-dim); font-size:11px; margin-top:3px;}
+  .chev{color:#5b6580; font-size:15px;}
+
+  .final-row{
+    margin-top:16px; border:1px dashed var(--brass); border-radius:12px; padding:14px 16px;
+    display:flex; align-items:center; gap:12px; background:rgba(201,162,75,.06);
+  }
+  .final-row.disabled{opacity:.45;}
+  .final-row .puz-num{background:var(--brass); color:#241c0e;}
+
+  /* ---------- Puzzle detail ---------- */
+  .puzzle-card{
+    background:linear-gradient(160deg, rgba(38,49,70,.6), rgba(22,28,40,.6));
+    border:1px solid #38435f; border-radius:16px; padding:20px;
+  }
+  .puzzle-tag{font-size:11px; letter-spacing:.1em; color:var(--brass-soft); margin-bottom:8px;}
+  .puzzle-q{font-size:16px; line-height:2; color:var(--paper); white-space:pre-wrap; margin:0 0 18px;}
+  .ans-row{display:flex; gap:8px;}
+  input[type=text]{
+    flex:1; font-size:16px; padding:13px 14px; border-radius:10px;
+    border:1px solid #47547a; background:#0e1320; color:var(--paper);
+    -webkit-appearance:none; appearance:none; font-family:inherit;
+  }
+  input[type=text]:focus{outline:none; border-color:var(--brass-soft);}
+  .submit-btn{
+    background:var(--brass-soft); color:#241c0e; border:none; border-radius:10px;
+    padding:0 20px; font-size:14px; font-weight:700; font-family:inherit;
+  }
+  .msg{font-size:13px; margin-top:12px; min-height:18px; line-height:1.7;}
+  .msg.err{color:#e08a86;}
+  .msg.ok{color:#8fd6a8;}
+  .hint-area{margin-top:18px; display:flex; flex-direction:column; gap:8px;}
+  .hint-btn{
+    align-self:flex-start; background:none; border:1px solid #47547a; color:var(--text-dim);
+    border-radius:20px; padding:7px 14px; font-size:12px; font-family:inherit;
+  }
+  .hint-box{
+    background:rgba(201,162,75,.08); border:1px solid rgba(201,162,75,.35);
+    border-radius:10px; padding:10px 13px; font-size:12.5px; color:var(--brass-soft); line-height:1.7;
+  }
+  .reward-box{
+    margin-top:18px; border-top:1px dashed #3a4560; padding-top:16px;
+    display:flex; align-items:center; gap:12px;
+  }
+  .reward-kana{
+    width:42px; height:42px; border-radius:10px; background:var(--brass); color:#241c0e;
+    display:flex; align-items:center; justify-content:center; font-size:19px; font-weight:800; font-family:'Shippori Mincho';
+  }
+  .reward-box p{margin:0; font-size:12px; color:var(--text-dim); line-height:1.7;}
+
+  /* ---------- Final combination screen ---------- */
+  .kana-slots{display:flex; gap:10px; justify-content:center; margin:22px 0 10px;}
+  .kana-slot{
+    width:52px; height:52px; border-radius:10px; border:1.5px solid var(--brass);
+    display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:800;
+    color:var(--brass-soft); font-family:'Shippori Mincho'; background:rgba(201,162,75,.06);
+  }
+  .kana-pool{display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin:16px 0 4px;}
+  .kana-pool .k{
+    width:46px; height:46px; border-radius:10px; background:#0e1320; border:1px solid #47547a;
+    display:flex; align-items:center; justify-content:center; font-size:19px; color:var(--paper);
+    font-family:'Shippori Mincho'; font-weight:700;
+  }
+
+  /* ---------- Completion screen ---------- */
+  .complete-screen{display:flex; flex-direction:column; align-items:center; text-align:center; padding-top:8vh; gap:16px;}
+  .complete-screen .badge{
+    width:92px; height:92px; border-radius:50%; border:2px solid var(--brass);
+    display:flex; align-items:center; justify-content:center; font-size:38px;
+    box-shadow:0 0 30px rgba(201,162,75,.3);
+  }
+  .stat-grid{display:flex; gap:10px; margin-top:16px;}
+  .stat{border:1px solid #38435f; border-radius:12px; padding:14px 18px; text-align:center; min-width:90px;}
+  .stat b{display:block; font-size:22px; color:var(--brass-soft); font-family:'Shippori Mincho';}
+  .stat span{font-size:11px; color:var(--text-dim);}
+
+  .bottom-fixed{
+    position:sticky; bottom:0; padding:14px 18px calc(14px + env(safe-area-inset-bottom,0px));
+    background:linear-gradient(0deg, rgba(17,21,31,.97), rgba(17,21,31,.8) 70%, transparent);
+    z-index:5;
+  }
+
+  ::selection{background:rgba(201,162,75,.35);}
+</style>
+</head>
+<body>
+<div class="stars"></div>
+<div id="app">
+  <header class="topbar" id="topbar" style="display:none;">
+    <div class="brand"><span class="lamp"></span><span class="title serif" id="topbarTitle">夜ふけの謎解きカフェ</span></div>
+    <button class="icon" id="resetBtn">はじめから</button>
+  </header>
+  <main id="main"></main>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var STORAGE_KEY = "yofuke_nazotoki_cafe_v1";
+
+  var STAGES = [
+    {
+      id:1,
+      floor:"1F",
+      name:"ウェルカムドリンクの謎",
+      memo:"いらっしゃいませ。ご注文が届くまでの間、4つの小さな謎をどうぞ。解けたひらがなを集めると、合言葉が見えてきます。",
+      target:"なぞとき",
+      puzzles:[
+        {
+          id:"s1p1", label:"謎その一", type:"漢字あそび",
+          q:"木 ＋ 木 ＋ 木 ＝ ？\n\n木が3本集まると、ひとつの漢字になります。それは何と読むでしょう。",
+          hints:["木が集まってできる場所を思い浮かべてみましょう。","答えはひらがな2文字です。「もり」の音です。"],
+          answers:["もり","森"],
+          reward:"な"
+        },
+        {
+          id:"s1p2", label:"謎その二", type:"なぞなぞ",
+          q:"パンはパンでも、\n食べられないパンは、なーんだ？",
+          hints:["台所にある、調理器具です。","フライで炒め物をするときに使う、あの道具です。"],
+          answers:["ふらいぱん","フライパン"],
+          reward:"ぞ"
+        },
+        {
+          id:"s1p3", label:"謎その三", type:"しりとり",
+          q:"すいか → かに → にわとり → （　　　　）\n\n「り」から始まる、4文字の小さな生き物が入ります。",
+          hints:["木の上をすばしっこく走る動物です。","しっぽがふさふさしています。ひらがな4文字。"],
+          answers:["りす"],
+          reward:"と"
+        },
+        {
+          id:"s1p4", label:"謎その四", type:"絵文字＋漢字",
+          q:"🔥 ＋ 山 ＝ ？\n\n燃える山、といえば何でしょう。",
+          hints:["地面の下からマグマが噴き出す山のことです。","答えはひらがな3文字。「か」で始まります。"],
+          answers:["かざん","火山"],
+          reward:"き"
+        }
+      ]
+    },
+    {
+      id:2,
+      floor:"2F",
+      name:"読書室の謎",
+      memo:"静かな読書室へようこそ。ここではことばの並びに耳を澄ませてください。4つ解くと、次の合言葉が完成します。",
+      target:"ひらめき",
+      puzzles:[
+        {
+          id:"s2p1", label:"謎その一", type:"しりとり",
+          q:"たいこ → こま → まくら → （　　　　）\n\n「ら」から始まる、砂漠を歩く動物が入ります。",
+          hints:["背中にこぶがある動物です。","ひらがな4文字。「らくだ」の音です。"],
+          answers:["らくだ"],
+          reward:"ひ"
+        },
+        {
+          id:"s2p2", label:"謎その二", type:"漢字あそび",
+          q:"言 ＋ 舌 ＝ ？\n\nことばと舌を合わせると、ある行為を表す漢字になります。",
+          hints:["誰かと言葉を交わすことです。","答えはひらがな3文字。「はなし」の音です。"],
+          answers:["はなし","話"],
+          reward:"ら"
+        },
+        {
+          id:"s2p3", label:"謎その三", type:"なぞなぞ",
+          q:"食べると増えるものは、なーんだ？\n\n（ヒント：誰もが少しずつ、毎年食べています）",
+          hints:["「◯を食う」という言い方があります。","年齢のことです。ひらがな2文字。"],
+          answers:["とし","年","歳"],
+          reward:"め"
+        },
+        {
+          id:"s2p4", label:"謎その四", type:"絵文字＋漢字",
+          q:"🌙 ＋ 見 ＝ ？\n\n秋の夜、まんまるのお月さまを眺める行事は？",
+          hints:["すすきや団子を用意する秋の風習です。","答えはひらがな4文字。「つきみ」の音です。"],
+          answers:["つきみ","月見"],
+          reward:"き"
+        }
+      ]
+    },
+    {
+      id:3,
+      floor:"屋上",
+      name:"星空の謎",
+      memo:"最後は屋上のテラス席です。星を数えながら、4つの謎を解いてください。最後にごほうびが待っています。",
+      target:"ごほうび",
+      puzzles:[
+        {
+          id:"s3p1", label:"謎その一", type:"しりとり",
+          q:"すずめ → めだか → かめ → （　　　　）\n\n「め」から始まる、顔にかける道具が入ります。",
+          hints:["目が悪い人がかけるものです。","ひらがな4文字。レンズが2枚あります。"],
+          answers:["めがね","眼鏡"],
+          reward:"ご"
+        },
+        {
+          id:"s3p2", label:"謎その二", type:"漢字あそび",
+          q:"田 ＋ 力 ＝ ？\n\n田んぼで力を出す人、といえば何と読むでしょう。",
+          hints:["女性の反対の性別を表す言葉です。","答えはひらがな3文字。「おとこ」の音です。"],
+          answers:["おとこ","男"],
+          reward:"ほ"
+        },
+        {
+          id:"s3p3", label:"謎その三", type:"なぞなぞ",
+          q:"毎日切っているのに、\nなくならないものは、なーんだ？",
+          hints:["手や足の先についています。","ひらがな2文字。パチンと切る、あの部分です。"],
+          answers:["つめ","爪"],
+          reward:"う"
+        },
+        {
+          id:"s3p4", label:"謎その四", type:"絵文字＋漢字",
+          q:"🎂 ＋ 日 ＝ ？\n\n生まれた日をお祝いする、あの日のことです。",
+          hints:["ケーキとろうそくが登場する日です。","答えはひらがな6文字。「たんじょうび」の音です。"],
+          answers:["たんじょうび","誕生日"],
+          reward:"び"
+        }
+      ]
+    }
+  ];
+
+  /* ---------- storage ---------- */
+  function loadState(){
+    try{
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if(raw) return JSON.parse(raw);
+    }catch(e){}
+    return {solved:{}, hints:{}, stagesCleared:{}, started:false};
+  }
+  function saveState(){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
+  }
+  var state = loadState();
+
+  /* ---------- kana normalize ---------- */
+  function normalize(str){
+    if(!str) return "";
+    str = str.trim();
+    str = str.replace(/[\s　]/g,"");
+    // full-width alnum -> half-width
+    str = str.replace(/[Ａ-Ｚａ-ｚ０-９]/g, function(ch){
+      return String.fromCharCode(ch.charCodeAt(0) - 0xFEE0);
+    });
+    // katakana -> hiragana
+    str = str.replace(/[\u30a1-\u30f6]/g, function(ch){
+      return String.fromCharCode(ch.charCodeAt(0) - 0x60);
+    });
+    return str.toLowerCase();
+  }
+  function answerMatches(input, answers){
+    var n = normalize(input);
+    if(!n) return false;
+    for(var i=0;i<answers.length;i++){
+      if(normalize(answers[i]) === n) return true;
+    }
+    return false;
+  }
+
+  /* ---------- helpers ---------- */
+  function allPuzzlesSolved(stage){
+    return stage.puzzles.every(function(p){ return !!state.solved[p.id]; });
+  }
+  function stageSolvedCount(stage){
+    return stage.puzzles.filter(function(p){ return !!state.solved[p.id]; }).length;
+  }
+  function isStageUnlocked(idx){
+    if(idx === 0) return true;
+    return !!state.stagesCleared[STAGES[idx-1].id];
+  }
+  function shuffle(arr){
+    var a = arr.slice();
+    for(var i=a.length-1;i>0;i--){
+      var j = Math.floor(Math.random()*(i+1));
+      var t=a[i]; a[i]=a[j]; a[j]=t;
+    }
+    return a;
+  }
+  function totalPuzzles(){
+    var n=0; STAGES.forEach(function(s){n+=s.puzzles.length;}); return n;
+  }
+  function totalSolved(){
+    return Object.keys(state.solved).length;
+  }
+  function totalHints(){
+    var n=0; Object.keys(state.hints).forEach(function(k){ n+=state.hints[k]; }); return n;
+  }
+  function perfectPuzzles(){
+    var n=0;
+    STAGES.forEach(function(s){
+      s.puzzles.forEach(function(p){
+        if(state.solved[p.id] && !state.hints[p.id]) n++;
+      });
+    });
+    return n;
+  }
+
+  var topbar = document.getElementById("topbar");
+  var main = document.getElementById("main");
+  var route = {screen:"title"};
+
+  document.getElementById("resetBtn").addEventListener("click", function(){
+    if(confirm("進行状況をすべて消して、最初からやり直しますか？")){
+      state = {solved:{}, hints:{}, stagesCleared:{}, started:true};
+      saveState();
+      render({screen:"map"});
+    }
+  });
+
+  function esc(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+    });
+  }
+
+  function render(r){
+    route = r;
+    if(r.screen === "title"){
+      topbar.style.display = "none";
+      renderTitle();
+    } else {
+      topbar.style.display = "flex";
+      if(r.screen === "map") renderMap();
+      else if(r.screen === "stage") renderStage(r.stageId);
+      else if(r.screen === "puzzle") renderPuzzle(r.stageId, r.puzzleId);
+      else if(r.screen === "final") renderFinal(r.stageId);
+      else if(r.screen === "complete") renderComplete();
+    }
+    window.scrollTo(0,0);
+  }
+
+  function renderTitle(){
+    main.innerHTML =
+      '<div class="title-screen">'+
+        '<div class="mark">☕</div>'+
+        '<h1>夜ふけの<br>謎解きカフェ</h1>'+
+        '<p class="copy">注文の品が来るまでの、ちょっとした暇つぶしに。<br>'+
+        '3つのフロア、全12の小さな謎。<br>すべて解いて、合言葉を集めましょう。</p>'+
+        '<button class="cta" id="startBtn">入店する</button>'+
+        '<p class="note">スキマ時間で、ひとりでじっくりどうぞ。</p>'+
+      '</div>';
+    document.getElementById("startBtn").addEventListener("click", function(){
+      state.started = true; saveState();
+      render({screen:"map"});
+    });
+  }
+
+  function renderMap(){
+    document.getElementById("topbarTitle").textContent = "夜ふけの謎解きカフェ";
+    var html = '<p class="lede">お好きなフロアからどうぞ。上の階は、下の階の合言葉を見つけると開きます。</p><div class="floor-list">';
+    STAGES.forEach(function(stage, idx){
+      var unlocked = isStageUnlocked(idx);
+      var cleared = !!state.stagesCleared[stage.id];
+      var solvedN = stageSolvedCount(stage);
+      var totalN = stage.puzzles.length;
+      var pct = Math.round((solvedN/totalN)*100);
+      html += '<div class="floor-card '+(unlocked?'':'locked')+'" data-stage="'+stage.id+'">';
+      if(cleared){
+        html += '<div class="seal">✓</div>';
+      } else if(!unlocked){
+        html += '<div class="lock-icon">🔒</div>';
+      }
+      html += '<div class="fk">'+esc(stage.floor)+'</div>';
+      html += '<h3>'+esc(stage.name)+'</h3>';
+      if(unlocked){
+        html += '<p class="desc">'+esc(stage.memo)+'</p>';
+        html += '<div class="row"><div class="progress-track"><div class="progress-fill" style="width:'+pct+'%"></div></div>';
+        html += '<button class="go-btn" data-go="'+stage.id+'">'+(cleared? '見直す' : (solvedN>0 ? '続きから' : 'はじめる'))+'</button></div>';
+      } else {
+        html += '<p class="desc">下のフロアの合言葉を見つけると、ここが開きます。</p>';
+      }
+      html += '</div>';
+    });
+    html += '</div>';
+    main.innerHTML = html;
+    main.querySelectorAll(".go-btn").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        render({screen:"stage", stageId: parseInt(btn.getAttribute("data-go"),10)});
+      });
+    });
+  }
+
+  function stageIndexById(id){
+    for(var i=0;i<STAGES.length;i++) if(STAGES[i].id===id) return i;
+    return -1;
+  }
+
+  function renderStage(stageId){
+    var idx = stageIndexById(stageId);
+    var stage = STAGES[idx];
+    document.getElementById("topbarTitle").textContent = stage.floor+" "+stage.name;
+    var html = '<div class="back-row"><button id="backToMap">← フロア一覧</button></div>';
+    html += '<div class="memo">'+esc(stage.memo)+'</div>';
+    html += '<div class="puz-list">';
+    stage.puzzles.forEach(function(p, i){
+      var solved = !!state.solved[p.id];
+      html += '<div class="puz-row '+(solved?'solved':'')+'" data-p="'+p.id+'">';
+      html += '<div class="puz-num">'+(solved?'✓':(i+1))+'</div>';
+      html += '<div class="pt">'+esc(p.label)+'<small>'+esc(p.type)+(solved?' ・ 正解ずみ':'')+'</small></div>';
+      html += '<div class="chev">›</div></div>';
+    });
+    html += '</div>';
+
+    var allDone = allPuzzlesSolved(stage);
+    var cleared = !!state.stagesCleared[stage.id];
+    html += '<div class="final-row '+(allDone?'':'disabled')+'" id="finalRow">';
+    html += '<div class="puz-num">'+(cleared?'✓':'★')+'</div>';
+    html += '<div class="pt">合言葉をあわせる<small>'+(allDone? (cleared? '正解ずみ・見直せます' : '4つのかけらが揃いました') : '謎をすべて解くと挑戦できます')+'</small></div>';
+    html += '<div class="chev">›</div></div>';
+
+    main.innerHTML = html;
+    document.getElementById("backToMap").addEventListener("click", function(){ render({screen:"map"}); });
+    main.querySelectorAll(".puz-row").forEach(function(row){
+      row.addEventListener("click", function(){
+        render({screen:"puzzle", stageId: stage.id, puzzleId: row.getAttribute("data-p")});
+      });
+    });
+    var finalRow = document.getElementById("finalRow");
+    finalRow.addEventListener("click", function(){
+      if(allDone) render({screen:"final", stageId: stage.id});
+    });
+  }
+
+  function renderPuzzle(stageId, puzzleId){
+    var stage = STAGES[stageIndexById(stageId)];
+    var puzzle = stage.puzzles.filter(function(p){return p.id===puzzleId;})[0];
+    var solved = !!state.solved[puzzle.id];
+    var hintsShown = state.hints[puzzle.id] || 0;
+
+    document.getElementById("topbarTitle").textContent = stage.floor+" "+puzzle.label;
+
+    var html = '<div class="back-row"><button id="backToStage">← '+esc(stage.name)+'</button></div>';
+    html += '<div class="puzzle-card">';
+    html += '<div class="puzzle-tag">'+esc(puzzle.type)+'</div>';
+    html += '<p class="puzzle-q">'+esc(puzzle.q)+'</p>';
+
+    if(solved){
+      html += '<div class="msg ok">正解 — '+esc(puzzle.answers[0])+'</div>';
+      html += '<div class="reward-box"><div class="reward-kana">'+esc(puzzle.reward)+'</div><p>この一文字を手に入れました。フロアの合言葉づくりに使います。</p></div>';
+    } else {
+      html += '<div class="ans-row"><input type="text" id="ansInput" placeholder="こたえを入力" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"><button class="submit-btn" id="ansSubmit">解答</button></div>';
+      html += '<div class="msg" id="ansMsg"></div>';
+      html += '<div class="hint-area" id="hintArea">';
+      for(var i=0;i<hintsShown;i++){
+        html += '<div class="hint-box">ヒント'+(i+1)+'：'+esc(puzzle.hints[i])+'</div>';
+      }
+      if(hintsShown < puzzle.hints.length){
+        html += '<button class="hint-btn" id="hintBtn">ヒントを見る（残り'+(puzzle.hints.length-hintsShown)+'）</button>';
+      }
+      html += '</div>';
+    }
+    html += '</div>';
+    main.innerHTML = html;
+
+    document.getElementById("backToStage").addEventListener("click", function(){ render({screen:"stage", stageId: stage.id}); });
+
+    if(!solved){
+      var input = document.getElementById("ansInput");
+      var msg = document.getElementById("ansMsg");
+      function submit(){
+        if(answerMatches(input.value, puzzle.answers)){
+          state.solved[puzzle.id] = true;
+          saveState();
+          render({screen:"puzzle", stageId: stage.id, puzzleId: puzzle.id});
+        } else {
+          msg.textContent = "ちがうようです。もう一度、考えてみましょう。";
+          msg.className = "msg err";
+        }
+      }
+      document.getElementById("ansSubmit").addEventListener("click", submit);
+      input.addEventListener("keydown", function(e){ if(e.key==="Enter") submit(); });
+
+      var hintBtn = document.getElementById("hintBtn");
+      if(hintBtn){
+        hintBtn.addEventListener("click", function(){
+          state.hints[puzzle.id] = (state.hints[puzzle.id]||0) + 1;
+          saveState();
+          render({screen:"puzzle", stageId: stage.id, puzzleId: puzzle.id});
+        });
+      }
+    }
+  }
+
+  function renderFinal(stageId){
+    var stage = STAGES[stageIndexById(stageId)];
+    var cleared = !!state.stagesCleared[stage.id];
+    document.getElementById("topbarTitle").textContent = stage.floor+" 合言葉";
+
+    var rewardKana = stage.puzzles.map(function(p){return p.reward;});
+    var shuffled = shuffle(rewardKana);
+
+    var html = '<div class="back-row"><button id="backToStage2">← '+esc(stage.name)+'</button></div>';
+    html += '<div class="puzzle-card" style="text-align:center;">';
+    html += '<div class="puzzle-tag">フロア合言葉</div>';
+    html += '<p class="puzzle-q" style="text-align:center;">4つのかけらを、正しい順に並べかえてください。</p>';
+    html += '<div class="kana-pool">';
+    shuffled.forEach(function(k){ html += '<div class="k">'+esc(k)+'</div>'; });
+    html += '</div>';
+
+    if(cleared){
+      html += '<div class="msg ok" style="margin-top:16px;">合言葉：「'+esc(stage.target)+'」で正解しています</div>';
+    } else {
+      html += '<div class="ans-row" style="margin-top:18px;"><input type="text" id="finalInput" placeholder="合言葉を入力" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"><button class="submit-btn" id="finalSubmit">確定</button></div>';
+      html += '<div class="msg" id="finalMsg"></div>';
+    }
+    html += '</div>';
+    main.innerHTML = html;
+
+    document.getElementById("backToStage2").addEventListener("click", function(){ render({screen:"stage", stageId: stage.id}); });
+
+    if(!cleared){
+      var input = document.getElementById("finalInput");
+      var msg = document.getElementById("finalMsg");
+      function submit(){
+        if(answerMatches(input.value, [stage.target])){
+          state.stagesCleared[stage.id] = true;
+          saveState();
+          var idx = stageIndexById(stage.id);
+          if(idx === STAGES.length - 1){
+            render({screen:"complete"});
+          } else {
+            render({screen:"final", stageId: stage.id});
+          }
+        } else {
+          msg.textContent = "その並びではないようです。もう一度どうぞ。";
+          msg.className = "msg err";
+        }
+      }
+      document.getElementById("finalSubmit").addEventListener("click", submit);
+      input.addEventListener("keydown", function(e){ if(e.key==="Enter") submit(); });
+    }
+  }
+
+  function renderComplete(){
+    document.getElementById("topbarTitle").textContent = "夜ふけの謎解きカフェ";
+    var tp = totalPuzzles(), ts = totalSolved(), perfect = perfectPuzzles(), hints = totalHints();
+    var html = '<div class="complete-screen">';
+    html += '<div class="badge">🎉</div>';
+    html += '<h1 class="serif" style="font-size:22px; margin:0;">全フロア制覇</h1>';
+    html += '<p class="copy" style="color:var(--text-dim); font-size:13.5px; max-width:300px; line-height:1.9;">'+
+      '「今日のごほうびに、好きな飲み物を一杯どうぞ」<br>― マスターより ―</p>';
+    html += '<div class="stat-grid">';
+    html += '<div class="stat"><b>'+ts+'/'+tp+'</b><span>解いた謎</span></div>';
+    html += '<div class="stat"><b>'+perfect+'</b><span>ノーヒント正解</span></div>';
+    html += '<div class="stat"><b>'+hints+'</b><span>使ったヒント</span></div>';
+    html += '</div>';
+    html += '<button class="cta" id="backHome" style="margin-top:28px;">フロア一覧へ戻る</button>';
+    html += '</div>';
+    main.innerHTML = html;
+    document.getElementById("backHome").addEventListener("click", function(){ render({screen:"map"}); });
+  }
+
+  /* ---------- boot ---------- */
+  if(state.started){
+    render({screen:"map"});
+  } else {
+    render({screen:"title"});
+  }
+})();
+</script>
+</body>
+</html>
